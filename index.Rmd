@@ -19,48 +19,66 @@ tidy=TRUE, tidy.opts=list(width.cutoff=60), R.options=list(max.print=100))
 
 ## Data Wrangling, Exploration, Visualization
 
-### Name and EID here
+Kyarah Rogers kr29575
 
 #### Introduction 
 
-Paragraph or two introducing your datasets and variables, why they are interesting to you, etc.
+For this project, I am analyzing information about murders and killings by police in America in 2015.The murder dataset contains information about the locations and number of murders that took place in 2014 and 2015. The police killings dataset contains more detailed statisics about the places where the killings took place. For instance, it includes information about the average income and education levels of households in the area the crimes were committed. I first chose the murders dataset because I've been into murder documentaries this Halloween season! I decided to tie in police killings data as it is a specific type of murder that has been receiving a lot of social and political attention. From this project, I am curious to discover what relationships exist, if any, between general murders and murders by police officers in American cities. 
 
 ```{R}
-# read your datasets in here, e.g., with read_csv()
-
+library(tidyverse)
+data1 <- read_csv("https://raw.githubusercontent.com/fivethirtyeight/data/master/murder_2016/murder_2015_final.csv")
+data2 <- read_csv("https://raw.githubusercontent.com/fivethirtyeight/data/master/police-killings/police_killings.csv")
 ```
 
 #### Tidying: Reshaping
 
-If your datasets are tidy already, demonstrate that you can reshape data with pivot wider/longer here (e.g., untidy and then retidy). Alternatively, it may be easier to wait until the wrangling section so you can reshape your summary statistics. Note here if you are going to do this.
+My datasets are tidy already, but I will demonstrate that I can reshape a portion of my data with pivot wider/longer here (e.g., untidy and then retidy). 
 
 ```{R}
-# your tidying code (if applicable; can also wait until wrangling section)
+data2 %>% pivot_wider() -> widerdat2
+widerdat2 %>% pivot_longer(cols =c(1:2))
 ```
 
     
 #### Joining/Merging
 
 ```{R}
-# your joining code
+left_join(data1,data2, by="city") -> joined_project_data
 
-# your joining code
+data1 %>% summarize(n_distinct(city))
+data2 %>% summarize(n_distinct(city))
+joined_project_data %>% summarize(n_distinct(city))
+data1 %>% summarize(n())
+data2 %>% summarize(n())
+anti_join(data1, data2, by="city") 
+anti_join(data2, data1, by="city") -> uniquedat2
+uniquedat2 %>% summarize(n_distinct(city))
+joined_project_data %>% summarize(n())
+
 ```
 
-Discussions of joining here. Feel encouraged to break up into more than once code chunk and discuss each in turn.
+The murder dataset has 83 total observations while the police killings dataset has 467 (some cities are present more than once). For my datasets, I chose to use an left join by city. This allows me to see all of the information from the murder dataset along with any matches in the police killings dataset. I found that the murder dataset has 83 unique cities while the poilce killings dataset has 364. Using anti joins, I found that there were 30 cities in the murder dataset that were not in the police killings dataset. On the other hand, 311 cities were in the police killings dataset that weren't in the murder dataset. Because I used a left join, the joined dataset has 158 total observations with the 83 unique cities from the murder dataset. This implies that every city in the murder dataset has a match in the police killings dataset, but 311 cities in the police killings dataset have information dropped in the joined dataset. Because there are only 53 common cities, the statistics I find are likely not enough information to make broad state- or country-level conclusions.  
 
 ####  Wrangling
 
 ```{R}
-# your wrangling code
+joined_project_data %>% filter(city == "Houston") -> samp_table
+library(knitr)
+samp_table %>% kable()
+joined_project_data %>% filter(city == "Houston") %>% select(1, 4, 6:7) %>% arrange(desc(age)) 
+joined_project_data %>% filter(state.x == "Texas") %>% group_by(city) %>% select(1, 4, 6:9) %>% na.omit 
+joined_project_data %>% filter(city == "Houston") %>% mutate(rel_income = h_income/county_income)
+joined_project_data %>% filter(city == "Houston") %>% mutate(rel_income = h_income/county_income) %>% summarize(mean(rel_income))
+joined_project_data %>% filter(state.x == "Texas") %>% group_by(city) %>% summarize(mean(h_income))%>% na.omit
+joined_project_data %>% filter(str_detect(city, "^[aeiouAEIOU]")) %>% summarize(n_distinct(city))
+joined_project_data %>% group_by(city) %>% na.omit %>% summarize(mean(pop),sd(pop), var(pop), quantile(pop), min(pop), max(pop), n_distinct(pop))
+joined_project_data %>% group_by(city) %>% na.omit %>% summarize(mean(h_income),sd(h_income), var(h_income), quantile(h_income), min(h_income), max(h_income), n_distinct(h_income))
+joined_project_data %>% group_by(city) %>% na.omit %>% summarize(mean(county_income),sd(county_income), var(county_income), quantile(county_income), min(county_income), max(county_income), n_distinct(county_income)) 
 
-# your wrangling code
-
-# your wrangling code
 ```
 
-Your discussion of wrangling section here. Feel encouraged to break up into more than once code chunk and discuss each in turn.
-
+Using filter, I found that there were 6 police killings and 303 murders in Houston in 2015. I changed the format of this table using the kable function. Then, I selected columns for city, 2015 murders, names of police killing victims and their ages to get rid of extraneous details. Arrange allows me to see the list organized by the known victim ages. Next, I was curious to find out how many murders and police killings occurred in different Texas cities. Of all of the Texas cities listed, Houston had both the most police killings and murders in 2015. This makes sense given Houston is the largest of the cities. Next, I used mutate to create a new variable, rel_income, which represents the relative household income for a given county. By diving household income by county income, I get an idea of how wealthy a single household is in its county. The lower the number, the less wealthy. This is just another way of evaluating income in different areas. Looking at household income, I used summarize and mean to see how wealth compared across the Texas cities. I thought it was interesting that Houston was on the wealthier end of the spectrum despite being the city with the most murders, as murders are typically correlated with lower income areas. Other factors could explain this, such as a murder percentage for each city based on total population; for instance, Houston had the most murders and police killings, but that may not be significant relative to its population. Finally, I used str_detect and found that 14 of the city names in the joined dataset start with a vowel. One interesting finding from my summary statistics was that San Jose was the city with the greatest average county income, but Washington had the greatest household income.   
 
 #### Visualizing
 
