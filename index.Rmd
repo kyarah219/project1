@@ -63,46 +63,59 @@ The murder dataset has 83 total observations while the police killings dataset h
 ####  Wrangling
 
 ```{R}
-joined_project_data %>% filter(city == "Houston") -> samp_table
+joined_project_data %>% filter(city == "Houston") %>% select(1,4,6:7) -> samp_table
 library(knitr)
 samp_table %>% kable()
-joined_project_data %>% filter(city == "Houston") %>% select(1, 4, 6:7) %>% arrange(desc(age)) 
+joined_project_data %>% filter(city == "Houston") %>% select(1,4,6:7) %>% arrange(desc(age)) 
 joined_project_data %>% filter(state.x == "Texas") %>% group_by(city) %>% select(1, 4, 6:9) %>% na.omit 
 joined_project_data %>% filter(city == "Houston") %>% mutate(rel_income = h_income/county_income)
 joined_project_data %>% filter(city == "Houston") %>% mutate(rel_income = h_income/county_income) %>% summarize(mean(rel_income))
 joined_project_data %>% filter(state.x == "Texas") %>% group_by(city) %>% summarize(mean(h_income))%>% na.omit
 joined_project_data %>% filter(str_detect(city, "^[aeiouAEIOU]")) %>% summarize(n_distinct(city))
 joined_project_data %>% group_by(city) %>% na.omit %>% summarize(mean(pop),sd(pop), var(pop), quantile(pop), min(pop), max(pop), n_distinct(pop))
-joined_project_data %>% group_by(city) %>% na.omit %>% summarize(mean(h_income),sd(h_income), var(h_income), quantile(h_income), min(h_income), max(h_income), n_distinct(h_income))
+joined_project_data %>% group_by(city,gender) %>% na.omit %>% summarize(mean(h_income),sd(h_income), var(h_income), quantile(h_income), min(h_income), max(h_income), n_distinct(h_income))
 joined_project_data %>% group_by(city) %>% na.omit %>% summarize(mean(county_income),sd(county_income), var(county_income), quantile(county_income), min(county_income), max(county_income), n_distinct(county_income)) 
-
+joined_project_data %>% summarize_all(function(x)sum(is.na(x)))
+joined_project_data %>% group_by(gender) %>% summarize(n())
+joined_project_data %>% group_by(raceethnicity) %>% summarize(n())
+joined_project_data %>% group_by(month) %>% summarize(n())
+joined_project_data %>% group_by(cause) %>% summarize(n())
+joined_project_data %>% group_by(armed) %>% summarize(n())
 ```
 
-Using filter, I found that there were 6 police killings and 303 murders in Houston in 2015. I changed the format of this table using the kable function. Then, I selected columns for city, 2015 murders, names of police killing victims and their ages to get rid of extraneous details. Arrange allows me to see the list organized by the known victim ages. Next, I was curious to find out how many murders and police killings occurred in different Texas cities. Of all of the Texas cities listed, Houston had both the most police killings and murders in 2015. This makes sense given Houston is the largest of the cities. Next, I used mutate to create a new variable, rel_income, which represents the relative household income for a given county. By diving household income by county income, I get an idea of how wealthy a single household is in its county. The lower the number, the less wealthy. This is just another way of evaluating income in different areas. Looking at household income, I used summarize and mean to see how wealth compared across the Texas cities. I thought it was interesting that Houston was on the wealthier end of the spectrum despite being the city with the most murders, as murders are typically correlated with lower income areas. Other factors could explain this, such as a murder percentage for each city based on total population; for instance, Houston had the most murders and police killings, but that may not be significant relative to its population. Finally, I used str_detect and found that 14 of the city names in the joined dataset start with a vowel. One interesting finding from my summary statistics was that San Jose was the city with the greatest average county income, but Washington had the greatest household income.   
+Using filter, I found that there were 6 police killings and 303 murders in Houston in 2015. I changed the format of this table using the kable function. Then, I selected columns for city, 2015 murders, names of police killing victims and their ages to get rid of extraneous details. Arrange allows me to see the list organized by the known victim ages. Next, I was curious to find out how many murders and police killings occurred in different Texas cities. Of all of the Texas cities listed, Houston had both the most police killings and murders in 2015. This makes sense given Houston is the largest of the cities. Next, I used mutate to create a new variable, rel_income, which represents the relative household income for a given county. By diving household income by county income, I get an idea of how wealthy a single household is in its county. The lower the number, the less wealthy. This is just another way of evaluating income in different areas. Looking at household income, I used summarize and mean to see how wealth compared across the Texas cities. I thought it was interesting that Houston was on the wealthier end of the spectrum despite being the city with the most murders, as murders are typically correlated with lower income areas. Other factors could explain this, such as a murder percentage for each city based on total population; for instance, Houston had the most murders and police killings, but that may not be significant relative to its population. Finally, I used str_detect and found that 14 of the city names in the joined dataset start with a vowel. One interesting finding from my summary statistics was that San Jose was the city with the greatest average county income, but Washington had the greatest household income. Also, an overwhelming majority of police killing victims were men and committed by gunshot, which was not surprising to find given the reported incidents we see in the news.    
 
 #### Visualizing
 
 ```{R}
-# your plot 1
+joined_project_data %>% slice(1:25)%>% na.omit %>% ggplot(aes(x = h_income, y = county_income, color = city)) + 
+  geom_point(size=3) + geom_line(aes(group= city))+ggtitle("Income of Cities Where Police Killings Occurred")+xlab("County Income")+ylab("Household Income")+theme_dark()+scale_y_continuous(labels=scales::dollar)
 ```
 
-Your discussion of plot 1
+Off the bat, there are no obvious trends here. By plotting household and county incomes, I anticipated to see a positive linear trend, showing that counties with higher incomes would also have higher household incomes. Had I included all of the data, this relationship may have shown up. However, what we do see are several straight lines. This is because average household income levels did not change significantly within cities. Notably, Kansas City shows a jump in county and household income in one case. It can be inferred that the location of that particular killing was further away from the other two, as the average income in both categories increased. Compared to each other, there doesn't seem to be a trend in overall income across cities, with the exception of Washington, which is notably higher in both household and county income. Comparing Washington (with only one incident) against the other graphed cities, it is reasonable to make a connection that poorer areas tend to have more police killing incidents.
 
 ```{R}
-# your plot 2
+joined_project_data %>%slice(1:75)%>% group_by(city,gender) %>% na.omit %>%  summarize(meanh=(mean(h_income)),sdh=(sd(h_income)),n=n(),seh=sdh/sqrt(n)) %>% ggplot(aes(gender,meanh,fill=gender))+geom_bar(stat="summary")+
+  geom_errorbar(aes(y=meanh,ymin=meanh-seh,ymax=meanh+seh),width=.75)+
+  facet_wrap(~city)+ggtitle("Household Incomes of Victims of Police Killings in American Cities")+xlab("Gender")+ylab("Household Income")+theme(axis.text.x = element_text(angle=45, hjust=1)) +scale_y_continuous(lim=c(0,95000),labels=scales::dollar)
 ```
 
-Your discussion of plot 2
+The first detail to note here is the overwhelming majority of male victims of police killing incidents compared to women. Many cities have no reported cases of women being killed by police. Many of the places where these incidents took place had household incomes below $50,000. 
 
 ```{R}
-# your plot 3
+joined_project_data %>% select(city, armed, pop) %>% na.omit %>% slice(1:25) %>%
+  mutate(arm=ifelse(armed=="No","no","yes")) %>%
+  group_by(city, arm) %>% 
+  summarize(mean=mean(pop),se=sd(pop)/sqrt(n())) %>%
+  ggplot(aes(city,mean, fill=arm))+geom_bar(stat="identity", position="dodge")+
+  geom_errorbar(aes(ymin=mean-se, ymax=mean+se), position="dodge") + coord_flip()+ggtitle("Mean Populations Where Police Killed Armed & Unarmed Americans")+xlab("City")+ylab("Mean Population")+theme_classic()+scale_y_continuous(breaks=seq(0,60000,1000))
 ```
 
-Your discussion of plot 3
+Again, no obvious trends here; however, there are some interesting things to note. For one, it appears that most incidents took place when victims were armed. This would support the idea that an officer likely killed the victim in self defense. The populations in the city areas where a majority of these cases took place averaged between 2000 and 3000. Also, in areas where there were unarmed as well as armed victims, populations were usually larger where unarmed victims were killed. Like the other graphs, trends could be more evident with more cities and incidents included. The number of cities and incidents are kept smaller here for the sake of simplicity. 
 
 #### Concluding Remarks
 
-If any!
+As initially mentioned, it is difficult to come to any broad conclusions based on these data alone. The topic of murder and police killings involves other important factors such as crime rates and access to weapons. Two assumptions I previously held proved true through my analysis of these data: men are more likely to be victims of police killings and poorer areas are more likely to experience more frequent killing incidents.  
 
 
 
